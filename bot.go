@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -14,19 +13,24 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-// Variables used for command line parameters
 var (
 	Token string
 )
 
 func init() {
-	flag.StringVar(&Token, "t", "", "Bot Token")
-	flag.Parse()
+	Token = os.Getenv("TOKEN")
+	if Token == "" {
+		panic("empty token...")
+	} else if len(Token) < 10 {
+		panic("token seems too short...")
+	}
+	fmt.Println("Using token:", Token[:10])
 }
 
 func main() {
 	// Create a new Discord session using the provided bot token.
 	dg, err := discordgo.New("Bot " + Token)
+	// TODO: set activity/status
 	if err != nil {
 		fmt.Println("error creating Discord session,", err)
 		return
@@ -64,6 +68,7 @@ var allowedLanguages = []string{
 // TODO: check for exec time
 const MAX_EXECTIME time.Duration = 60 * time.Second
 
+// TODO: yeet this for SLASH commands
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Ignore all messages created by the bot itself
 	if m.Author.ID == s.State.User.ID {
@@ -79,6 +84,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	cmd := split[0]
 	args := split[1:]
 
+	// TODO: add support for other commands
+	// TODO: add option to specify language option
 	if cmd != "!run" {
 		return
 	}
