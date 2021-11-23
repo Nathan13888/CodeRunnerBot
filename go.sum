@@ -1,0 +1,10 @@
+github.com/bwmarrin/discordgo v0.23.2 h1:BzrtTktixGHIu9Tt7dEE6diysEF9HWnXeHuoJEt2fH4=
+github.com/bwmarrin/discordgo v0.23.2/go.mod h1:c1WtWUGN6nREDmzIpyTp/iD3VYt4Fpx+bVyfBG7JE+M=
+github.com/gorilla/websocket v1.4.0 h1:WDFjx/TMzVgy9VdMMQi2K2Emtwi2QcUQsztZ/zLaH/Q=
+github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
+github.com/milindmadhukar/go-piston v0.0.0-20211003083709-cb8047f4bcb3 h1:7cOXo9spgEB4KMh6tSgOZHm6x55JjGQE85LUv2UZ+gU=
+github.com/milindmadhukar/go-piston v0.0.0-20211003083709-cb8047f4bcb3/go.mod h1:UGaEMhOv9qK6z4E663UiqUB1M7J+aXDJV716oclA8Dg=
+github.com/milindmadhukar/go-piston v0.0.0-20211122120254-64da61081d05 h1:DJtDN26io353OHf60ahLS7ZmwnNmiMEoIL1Z5HT3v8I=
+github.com/milindmadhukar/go-piston v0.0.0-20211122120254-64da61081d05/go.mod h1:UGaEMhOv9qK6z4E663UiqUB1M7J+aXDJV716oclA8Dg=
+golang.org/x/crypto v0.0.0-20181030102418-4d3f4d9ffa16 h1:y6ce7gCWtnH+m3dCjzQ1PCuwl28DDIc3VNnvY29DlIA=
+golang.org/x/crypto v0.0.0-20181030102418-4d3f4d9ffa16/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
