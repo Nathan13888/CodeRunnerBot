@@ -125,7 +125,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 	// TODO: crop output...
-	sendMessage(s, m.ChannelID, fmt.Sprintf("Received Output:\n```%s\n```\n", output))
+	sendMessage(s, m.ChannelID, fmt.Sprintf("Received Output:\n```\n%s\n```\n", output))
 }
 
 func sendMessage(session *discordgo.Session, channelID string, message string) error {
