@@ -16,9 +16,7 @@ import (
 	"github.com/rs/zerolog/pkgerrors"
 )
 
-var (
-	Token string
-)
+var Token string
 
 func init() {
 	Token = os.Getenv("TOKEN")
@@ -37,6 +35,15 @@ func init() {
 	log.Logger = zerolog.New(multi).With().Timestamp().Logger()
 
 	log.Debug().Msg("Using token: " + Token[:10])
+
+	allowedLanguages := make([]string, len(languages))
+
+	i := 0
+	for k := range languages {
+		allowedLanguages[i] = k
+		i++
+	}
+
 	log.Debug().
 		Strs("allowed_languages", allowedLanguages).
 		Int("msg_char_lim", MSG_CHAR_LIM).
@@ -70,91 +77,91 @@ func main() {
 	// Wait here until CTRL-C or other term signal is received.
 	log.Info().Msg("Bot is now running. Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
+	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, syscall.SIGTERM)
 	<-sc
 
 	// Cleanly close down the Discord session.
 	dg.Close()
 }
 
-var allowedLanguages = []string{
-	"awk",
-	"bash",
-	"befunge93",
-	"brainfuck",
-	"c",
-	"c++",
-	"cjam",
-	"clojure",
-	"cobol",
-	"coffeescript",
-	"cow",
-	"crystal",
-	"csharp",
-	"csharp.net",
-	"d",
-	"dart",
-	"dash",
-	"dragon",
-	"elixir",
-	"emacs",
-	"erlang",
-	"file",
-	"forte",
-	"fortran",
-	"freebasic",
-	"fsharp.net",
-	"fsi",
-	"go",
-	"golfscript",
-	"groovy",
-	"haskell",
-	"husk",
-	"iverilog",
-	"japt",
-	"java",
-	"javascript",
-	"jelly",
-	"julia",
-	"kotlin",
-	"lisp",
-	"llvm_ir",
-	"lolcode",
-	"lua",
-	"nasm",
-	"nasm64",
-	"nim",
-	"ocaml",
-	"octave",
-	"osabie",
-	"paradoc",
-	"pascal",
-	"perl",
-	"php",
-	"ponylang",
-	"powershell",
-	"prolog",
-	"pure",
-	"pyth",
-	"python",
-	"python2",
-	"racket",
-	"raku",
-	"retina",
-	"rockstar",
-	"rscript",
-	"ruby",
-	"rust",
-	"scala",
-	"sqlite3",
-	"swift",
-	"typescript",
-	"basic",
-	"basic.net",
-	"vlang",
-	"vyxal",
-	"yeethon",
-	"zig",
+var languages = map[string][]string{
+	"awk":          {"awk"},
+	"bash":         {"bash", "sh", "zsh", "ksh", "shell"},
+	"befunge93":    {"befunge"},
+	"brainfuck":    {"brainfuck", "bf"},
+	"c":            {"c"},
+	"c++":          {"cpp", "c++", "h"},
+	"cjam":         {},
+	"clojure":      {"clojure", "clj", "clojurescript", "cljs"},
+	"cobol":        {"cobol"},
+	"coffeescript": {"coffeescript", "coffee-script", "coffee"},
+	"cow":          {},
+	"crystal":      {"cr", "crystal"},
+	"csharp":       {"csharp", "c#", "cs", "aspx-cs"},
+	"csharp.net":   {},
+	"d":            {"d"},
+	"dart":         {"dart"},
+	"dash":         {},
+	"dragon":       {},
+	"elixir":       {"elixir", "ex", "exs"},
+	"emacs":        {"emacs-lisp", "elisp", "emacs"},
+	"erlang":       {"erlang"},
+	"file":         {},
+	"forte":        {},
+	"fortran":      {"fortran"},
+	"freebasic":    {"basic"},
+	"fsharp.net":   {},
+	"fsi":          {"fsharp", "f#"},
+	"go":           {"go", "golang"},
+	"golfscript":   {},
+	"groovy":       {"groovy"},
+	"haskell":      {"haskell", "hs"},
+	"husk":         {},
+	"iverilog":     {"verilog", "v"},
+	"japt":         {},
+	"java":         {"java"},
+	"javascript":   {"javascript", "js"},
+	"jelly":        {},
+	"julia":        {"julia", "jl"},
+	"kotlin":       {"kotlin"},
+	"lisp":         {"common-lisp", "cl", "lisp"},
+	"llvm_ir":      {"llvm"},
+	"lolcode":      {},
+	"lua":          {"lua"},
+	"nasm":         {"nasm"},
+	"nasm64":       {},
+	"nim":          {"nimrod", "nim"},
+	"ocaml":        {"ocaml"},
+	"octave":       {"octave"},
+	"osabie":       {},
+	"paradoc":      {},
+	"pascal":       {"delphi", "pas", "pascal", "objectpascal"},
+	"perl":         {"perl", "pl"},
+	"php":          {"php", "php3", "php4", "php5"},
+	"ponylang":     {"pony"},
+	"powershell":   {"powershell", "pwsh", "posh", "ps1", "psm1"},
+	"prolog":       {"prolog"},
+	"pure":         {},
+	"pyth":         {},
+	"python":       {"python", "py", "sage", "python3", "py3"},
+	"python2":      {"python2", "py2"},
+	"racket":       {"racket", "rkt"},
+	"raku":         {"perl6", "pl6", "raku"},
+	"retina":       {},
+	"rockstar":     {},
+	"rscript":      {"rd"},
+	"ruby":         {"ruby", "rb", "duby"},
+	"rust":         {"rust", "rs"},
+	"scala":        {"scala"},
+	"sqlite3":      {"sql"},
+	"swift":        {"swift"},
+	"typescript":   {"typescript", "ts"},
+	"basic":        {"basic"},
+	"basic.net":    {},
+	"vlang":        {},
+	"vyxal":        {},
+	"yeethon":      {},
+	"zig":          {"zig"},
 }
 
 // TODO: check for exec time
@@ -192,7 +199,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	lang := strings.ToLower(args[0]) // spaces don't need to be trimmed since do to the way arguments are split
 
 	validLanguage := false
-	for _, l := range allowedLanguages {
+	for l := range languages {
 		if strings.EqualFold(l, lang) {
 			validLanguage = true
 			break
