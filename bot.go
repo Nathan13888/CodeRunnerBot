@@ -39,6 +39,7 @@ func init() {
 	log.Debug().Msg("Using token: " + Token[:10])
 	log.Debug().
 		Strs("allowed_languages", allowedLanguages).
+		Str("cmd_prefix", CMD_PREFIX).
 		Int("msg_char_lim", MSG_CHAR_LIM).
 		Dur("max_exectime", MAX_EXECTIME).
 		Msg("Configured Settings")
@@ -159,6 +160,7 @@ var allowedLanguages = []string{
 
 // TODO: check for exec time
 const MAX_EXECTIME time.Duration = 60 * time.Second
+const CMD_PREFIX = "!"
 
 // TODO: yeet this for SLASH commands
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -168,25 +170,35 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	lines := strings.Split(m.Content, "\n")
+	cmdLine := lines[0]
 
 	re := regexp.MustCompile(" +")
-	split := re.Split(strings.TrimSpace(lines[0]), -1)
+	split := re.Split(strings.TrimSpace(cmdLine), -1)
 
 	cmd := split[0]
-	args := split[1:]
-
-	// TODO: add support for other commands
-	if cmd != "!run" {
+	if !strings.HasPrefix(cmd, CMD_PREFIX) {
 		return
 	}
+	cmd = strings.TrimPrefix(cmd, CMD_PREFIX) // note: prefix does not need to be tested as the switch will not recognize a command with another prefix
+	args := split[1:]
 
+	log.Info().Str("user", m.Author.Username).Msg("Executed Command")
+	log.Debug().Strs("lines", lines).Str("cmd", cmd).Strs("args", args).Msg("Received Command")
+
+	switch cmd {
+	case "help":
+		sendMessage(s, m.ChannelID, "```\n# Help\n\nOnly one command to remember...\n\n!run <language> <language version>\n`​`​`\n{code}\n`​`​`\n```")
+	case "run":
+		runCommand(s, m, cmd, args, lines)
+	default:
+		sendMessage(s, m.ChannelID, "Unknown Command")
+	}
+}
+
+func runCommand(s *discordgo.Session, m *discordgo.MessageCreate, cmd string, args []string, lines []string) {
 	if len(args) == 0 {
 		return
 	}
-
-	log.Info().Str("user", m.Author.Username).Msg("Executed Command")
-
-	log.Debug().Strs("lines", lines).Str("cmd", cmd).Strs("args", args).Msg("Received Command")
 
 	// proper format: back ticks, valid language
 	lang := strings.ToLower(args[0]) // spaces don't need to be trimmed since do to the way arguments are split
