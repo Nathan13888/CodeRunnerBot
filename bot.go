@@ -62,6 +62,10 @@ func main() {
 	// Register the messageCreate func as a callback for MessageCreate events.
 	dg.AddHandler(messageCreate)
 
+	dg.AddHandler(func(s *discordgo.Session, event *discordgo.Ready) {
+		s.UpdateGameStatus(0, "!run")
+	})
+
 	// Just like the ping pong example, we only care about receiving message
 	// events in this example.
 	dg.Identify.Intents = discordgo.IntentsGuildMessages
