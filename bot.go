@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -17,7 +18,11 @@ import (
 )
 
 var (
-	Token string
+	Token        string
+	BuildVersion string = "unknown"
+	BuildTime    string = time.Now().Format(time.RFC1123)
+	GOOS         string = runtime.GOOS
+	ARCH         string = runtime.GOARCH
 )
 
 func init() {
@@ -188,6 +193,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	switch cmd {
 	case "help":
 		sendMessage(s, m.ChannelID, "```\n# Help\n\nOnly one command to remember...\n\n!run <language> <language version>\n`​`​`\n{code}\n`​`​`\n```")
+	case "build":
+		sendMessage(s, m.ChannelID, fmt.Sprintf("```\nBuild Version:\t%s\nBuild Time:   \t%s\nBuild OS:     \t%s\nBuild Arch:   \t%s\n```", BuildVersion, BuildTime, GOOS, ARCH))
 	case "run":
 		runCommand(s, m, cmd, args, lines)
 	default:
