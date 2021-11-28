@@ -27,6 +27,15 @@ func init() {
 	} else if len(Token) < 10 {
 		panic("token seems too short...")
 	}
+
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	zerolog.TimeFieldFormat = time.RFC3339
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+
+	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
+	multi := zerolog.MultiLevelWriter(consoleWriter)
+	log.Logger = zerolog.New(multi).With().Timestamp().Logger()
+
 	log.Debug().Msg("Using token: " + Token[:10])
 	log.Debug().
 		Strs("allowed_languages", allowedLanguages).
@@ -36,14 +45,6 @@ func init() {
 }
 
 func main() {
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	zerolog.TimeFieldFormat = time.RFC3339
-	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-
-	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
-	multi := zerolog.MultiLevelWriter(consoleWriter)
-	log.Logger = zerolog.New(multi).With().Timestamp().Logger()
-
 	// Create a new Discord session using the provided bot token.
 	dg, err := discordgo.New("Bot " + Token)
 	// TODO: set activity/status
