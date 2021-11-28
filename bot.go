@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"regexp"
@@ -11,6 +10,9 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog/pkgerrors"
 )
 
 var (
@@ -24,15 +26,23 @@ func init() {
 	} else if len(Token) < 10 {
 		panic("token seems too short...")
 	}
-	fmt.Println("Using token:", Token[:10])
+	log.Debug().Msg("Using token: " + Token[:10])
 }
 
 func main() {
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	zerolog.TimeFieldFormat = time.RFC3339
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+
+	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
+	multi := zerolog.MultiLevelWriter(consoleWriter)
+	log.Logger = zerolog.New(multi).With().Timestamp().Logger()
+
 	// Create a new Discord session using the provided bot token.
 	dg, err := discordgo.New("Bot " + Token)
 	// TODO: set activity/status
 	if err != nil {
-		fmt.Println("error creating Discord session,", err)
+		log.Error().Err(err).Msg("error creating Discord session")
 		return
 	}
 
@@ -46,12 +56,12 @@ func main() {
 	// Open a websocket connection to Discord and begin listening.
 	err = dg.Open()
 	if err != nil {
-		fmt.Println("error opening connection,", err)
+		log.Error().Err(err).Msg("error opening connection")
 		return
 	}
 
 	// Wait here until CTRL-C or other term signal is received.
-	fmt.Println("Bot is now running. Press CTRL-C to exit.")
+	log.Info().Msg("Bot is now running. Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
@@ -76,7 +86,6 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	lines := strings.Split(m.Content, "\n")
-	fmt.Println(lines)
 
 	re := regexp.MustCompile(" +")
 	split := re.Split(strings.TrimSpace(lines[0]), -1)
@@ -90,8 +99,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	fmt.Println("cmd", cmd)
-	fmt.Println("args", args)
+	log.Debug().Strs("lines", lines).Str("cmd", cmd).Strs("args", args).Msg("Received Command")
 
 	if len(args) == 0 {
 		return
@@ -109,7 +117,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		for i := 1; i < len(process)-1; i++ {
 			code += process[i] + "\n"
 		}
-		fmt.Println(code)
+		log.Debug().Str("code", code).Msg("Running Code")
 	} else if len(lines) == 3 {
 		sendMessage(s, m.ChannelID, "Invalid input: do you have any code?")
 		return
@@ -131,7 +139,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 func sendMessage(session *discordgo.Session, channelID string, message string) error {
 	_, err := session.ChannelMessageSend(channelID, message)
 	if err != nil {
-		log.Println(err)
+		log.Error().Err(err).Msg("Received error while sending message")
 		return err
 	}
 	return nil
