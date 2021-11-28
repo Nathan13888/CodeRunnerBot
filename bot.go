@@ -192,7 +192,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	switch cmd {
 	case "help":
-		sendMessage(s, m.ChannelID, "```\n# Help\n\nOnly one command to remember...\n\n!run <language> <language version>\n`​`​`\n{code}\n`​`​`\n```")
+		sendMessage(s, m.ChannelID,
+			"```\n# Help\n\nOnly one command to remember...\n\n!run <language> <language version>\n`​`​`\n{code}\n(if not version is specified, the latest version is used)\n`​`​`\n```")
 	case "build":
 		sendMessage(s, m.ChannelID, fmt.Sprintf("```\nBuild Version:\t%s\nBuild Time:   \t%s\nBuild OS:     \t%s\nBuild Arch:   \t%s\n```", BuildVersion, BuildTime, GOOS, ARCH))
 	case "run":
@@ -222,6 +223,11 @@ func runCommand(s *discordgo.Session, m *discordgo.MessageCreate, cmd string, ar
 		return
 	}
 
+	version := ""
+	if len(args) >= 2 {
+		version = strings.ToLower(args[1])
+	}
+
 	var code string
 	if len(lines) > 3 {
 		process := lines[1:]
@@ -242,7 +248,7 @@ func runCommand(s *discordgo.Session, m *discordgo.MessageCreate, cmd string, ar
 	}
 
 	// exec; check max exec time
-	output, err := Exec(lang, code)
+	output, err := Exec(lang, version, code)
 	if err != nil {
 		sendMessage(s, m.ChannelID, fmt.Sprintf("Encountered Error: %v", err))
 		return
