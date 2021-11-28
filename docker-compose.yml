@@ -1,0 +1,16 @@
+version: "3.3"
+
+services:
+  dcs:
+    image: ghcr.io/nathan13888/coderunnerbot/crb:latest
+    container_name: crb
+    restart: always
+    environment:
+      TOKEN_FILE: /run/secrets/token
+    secrets:
+      - TOKEN
+
+secrets:
+  token:
+    file: ./TOKEN
+

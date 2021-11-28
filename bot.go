@@ -70,9 +70,84 @@ func main() {
 	dg.Close()
 }
 
-// TODO: ...
 var allowedLanguages = []string{
-	"python", "bash",
+	"awk",
+	"bash",
+	"befunge93",
+	"brainfuck",
+	"c",
+	"c++",
+	"cjam",
+	"clojure",
+	"cobol",
+	"coffeescript",
+	"cow",
+	"crystal",
+	"csharp",
+	"csharp.net",
+	"d",
+	"dart",
+	"dash",
+	"dragon",
+	"elixir",
+	"emacs",
+	"erlang",
+	"file",
+	"forte",
+	"fortran",
+	"freebasic",
+	"fsharp.net",
+	"fsi",
+	"go",
+	"golfscript",
+	"groovy",
+	"haskell",
+	"husk",
+	"iverilog",
+	"japt",
+	"java",
+	"javascript",
+	"jelly",
+	"julia",
+	"kotlin",
+	"lisp",
+	"llvm_ir",
+	"lolcode",
+	"lua",
+	"nasm",
+	"nasm64",
+	"nim",
+	"ocaml",
+	"octave",
+	"osabie",
+	"paradoc",
+	"pascal",
+	"perl",
+	"php",
+	"ponylang",
+	"powershell",
+	"prolog",
+	"pure",
+	"pyth",
+	"python",
+	"python2",
+	"racket",
+	"raku",
+	"retina",
+	"rockstar",
+	"rscript",
+	"ruby",
+	"rust",
+	"scala",
+	"sqlite3",
+	"swift",
+	"typescript",
+	"basic",
+	"basic.net",
+	"vlang",
+	"vyxal",
+	"yeethon",
+	"zig",
 }
 
 // TODO: check for exec time
@@ -99,13 +174,28 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	log.Debug().Strs("lines", lines).Str("cmd", cmd).Strs("args", args).Msg("Received Command")
-
 	if len(args) == 0 {
 		return
 	}
+
+	log.Info().Str("user", m.Author.Username).Msg("Executed Command")
+
+	log.Debug().Strs("lines", lines).Str("cmd", cmd).Strs("args", args).Msg("Received Command")
+
 	// proper format: back ticks, valid language
-	lang := args[0]
+	lang := strings.ToLower(args[0]) // spaces don't need to be trimmed since do to the way arguments are split
+
+	validLanguage := false
+	for _, l := range allowedLanguages {
+		if strings.EqualFold(l, lang) {
+			validLanguage = true
+			break
+		}
+	}
+	if !validLanguage {
+		sendMessage(s, m.ChannelID, "Invalid input: language '"+lang+"' is not supported")
+		return
+	}
 
 	var code string
 	if len(lines) > 3 {
