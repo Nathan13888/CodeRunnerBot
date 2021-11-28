@@ -20,7 +20,7 @@ import (
 var (
 	Token        string
 	BuildVersion string = "unknown"
-	BuildTime    string = time.Now().Format(time.RFC1123)
+	BuildTime    string = "unknown"
 	GOOS         string = runtime.GOOS
 	ARCH         string = runtime.GOARCH
 )
