@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"os/signal"
 	"regexp"
@@ -27,6 +28,11 @@ func init() {
 		panic("token seems too short...")
 	}
 	log.Debug().Msg("Using token: " + Token[:10])
+	log.Debug().
+		Strs("allowed_languages", allowedLanguages).
+		Int("msg_char_lim", MSG_CHAR_LIM).
+		Dur("max_exectime", MAX_EXECTIME).
+		Msg("Configured Settings")
 }
 
 func main() {
@@ -169,7 +175,6 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	args := split[1:]
 
 	// TODO: add support for other commands
-	// TODO: add option to specify language option
 	if cmd != "!run" {
 		return
 	}
@@ -222,14 +227,44 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		sendMessage(s, m.ChannelID, fmt.Sprintf("Encountered Error: %v", err))
 		return
 	}
-	// TODO: crop output...
-	sendMessage(s, m.ChannelID, fmt.Sprintf("Received Output:\n```\n%s\n```\n", output))
+
+	// crop command output is the command is too long
+	template := "Received Output:\n```\n%s\n```\n"
+	buffer := len(template) + 3 - 5 // adjusts for 5 extra characters which won't be counted by discord
+	croppedMessage, cropped := cropMessage(output, buffer)
+	if cropped > 0 {
+		// length of crop message is 22 + length of number `cropped`
+		template += fmt.Sprintf("(cropped %d characters)\n", cropped)
+	}
+	response := fmt.Sprintf(template, croppedMessage)
+	log.Debug().Str("output", response).Int("cropped", cropped).Int("final_length", len(response)).Msg("Completed command output")
+	sendMessage(s, m.ChannelID, response)
+}
+
+//const MSG_CHAR_LIM = 2000
+const MSG_CHAR_LIM = 500 // to avoid getting rate limited
+
+func cropMessage(toCrop string, buffer int) (string, int) {
+	if len(toCrop)+buffer < MSG_CHAR_LIM {
+		return toCrop, 0
+	}
+	// lazy crop... (could crop extra characters which might not need to be cropped)
+	end := MSG_CHAR_LIM - buffer - 22
+	cropped := len(toCrop) - end
+	end -= int(math.Log10(float64(cropped))) + 1 // remove estimate of number of characters that the number takes
+	if toCrop[end-2] == '/' && toCrop[end-3] != '/' {
+		end -= 2 // remove whatever is the last
+	} else if toCrop[end-1] == '/' {
+		end--
+	}
+	return toCrop[:end], len(toCrop) - end // recalculated cropped
 }
 
 func sendMessage(session *discordgo.Session, channelID string, message string) error {
 	_, err := session.ChannelMessageSend(channelID, message)
 	if err != nil {
 		log.Error().Err(err).Msg("Received error while sending message")
+		session.ChannelMessageSend(channelID, "Experienced error sending message...")
 		return err
 	}
 	return nil
