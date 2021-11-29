@@ -45,7 +45,6 @@ func init() {
 	log.Debug().
 		Strs("allowed_languages", allowedLanguages).
 		Int("msg_char_lim", MSG_CHAR_LIM).
-		Dur("max_exectime", MAX_EXECTIME).
 		Msg("Configured Settings")
 }
 
@@ -72,11 +71,29 @@ func main() {
 		return
 	}
 
+	dg.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		if h, ok := commandsHandlers[i.ApplicationCommandData().Name]; ok {
+			h(s, i)
+		}
+	})
+
+	for _, cmd := range commands {
+		_, err := dg.ApplicationCommandCreate(dg.State.User.ID, "", &cmd)
+		if err != nil {
+			log.Error().Err(err).Msg("error creating command")
+			return
+		}
+	}
+
 	// Wait here until CTRL-C or other term signal is received.
 	log.Info().Msg("Bot is now running. Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, syscall.SIGTERM)
 	<-sc
+
+	for _, cmd := range commands {
+		dg.ApplicationCommandDelete(dg.State.User.ID, "", cmd.ID)
+	}
 
 	// Cleanly close down the Discord session.
 	dg.Close()
@@ -162,44 +179,82 @@ var languages = map[string][]string{
 	"zig":          {"zig"},
 }
 
-// TODO: check for exec time
-const MAX_EXECTIME time.Duration = 60 * time.Second
+var (
+	commands = []discordgo.ApplicationCommand{
+		{
+			Name: "Run Code",
+			Type: discordgo.MessageApplicationCommand,
+		},
+	}
+	commandsHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
+		"Run Code": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			err := s.InteractionRespond(
+				i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+				},
+			)
 
-// TODO: yeet this for SLASH commands
+			message := i.ApplicationCommandData().
+				Resolved.Messages[i.ApplicationCommandData().TargetID]
+
+			if err != nil {
+				log.Error().Err(err).Msg("error responding to interaction")
+				return
+			}
+
+			if !isCodeMessage(message) {
+				s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
+					Content: "Not a code message. Did you remember to wrap your code in backticks (```)?",
+				})
+				return
+			}
+
+			lang, code := getLanguageAndCodeFromMessage(message)
+
+			log.Debug().
+				Str("lang", lang).
+				Msg("Language detected")
+
+			if lang == "" {
+				s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
+					Content: "No language provided. Did you remember to put a language after the opening backticks? (```py)",
+				})
+				return
+			}
+
+			output, err := Exec(lang, code)
+			if err != nil {
+				s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
+					Content: fmt.Sprintf("Encountered error while running code: %v", err),
+				})
+				return
+			}
+
+			for _, message := range splitOutput(output, 500) {
+				s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
+					Content: message,
+				})
+			}
+
+			if err != nil {
+				panic(err)
+			}
+		},
+	}
+)
+
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Ignore all messages created by the bot itself
 	if m.Author.ID == s.State.User.ID || !isCodeMessage(m.Message) {
 		return
 	}
-
-	log.Debug().
-		Str("author", m.Author.Username).
-		Str("channel", m.ChannelID).
-		Msg("Code Message")
-
-	lang, code := getLanguageAndCodeFromMessage(m.Message)
-
-	if lang == "" {
-		return
-	}
-
-	log.Debug().
-		Str("lang", lang).
-		Msg("Language detected")
-
-	output, err := Exec(lang, code)
-	if err != nil {
-		sendMessage(s, m.ChannelID, fmt.Sprintf("Encountered Error: %v", err))
-		return
-	}
-
-	for _, message := range splitOutput(output, 500) {
-		sendMessage(s, m.ChannelID, message)
-	}
 }
 
 func isCodeMessage(m *discordgo.Message) bool {
 	c := strings.Split(strings.ReplaceAll(m.Content, "\r\n", "\n"), "\n")
+	if len(c) < 2 {
+		return false
+	}
 	return c[0][:3] == "```" && c[len(c)-1] == "```"
 }
 
@@ -232,14 +287,4 @@ func splitOutput(output string, limit int) []string {
 	messages = append(messages, "```\n"+output+"\n```")
 
 	return messages
-}
-
-func sendMessage(session *discordgo.Session, channelID string, message string) error {
-	_, err := session.ChannelMessageSend(channelID, message)
-	if err != nil {
-		log.Error().Err(err).Msg("Received error while sending message")
-		session.ChannelMessageSend(channelID, "Experienced error sending message...")
-		return err
-	}
-	return nil
 }
