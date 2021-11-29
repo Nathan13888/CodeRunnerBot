@@ -47,7 +47,7 @@ func init() {
 	if err != nil {
 		log.Fatal().
 			Err(err).
-			Str("file", DOTENV).
+			Str("env_file", DOTENV).
 			Msg("Error loading environment file.")
 	}
 
@@ -63,6 +63,20 @@ func init() {
 			Msg("PISTON_URL not found in .env file, using default API endpoint.")
 		PISTON_URL = "https://emkc.org/api/v2/piston/"
 	}
+
+	// Log the languages and environment.
+	i := 0
+	for l := range languageMappings {
+		languages[i] = l
+		i++
+	}
+
+	log.Debug().
+		Strs("languages", languages).
+		Str("env_file", DOTENV).
+		Str("token", Token[:10]+strings.Repeat("*", len(Token)-10)).
+		Str("piston_url", PISTON_URL).
+		Msg("Configured settings.")
 }
 
 func main() {
@@ -134,85 +148,7 @@ func main() {
 	dg.Close()
 }
 
-var languages = []string{
-	"awk",
-	"bash",
-	"befunge93",
-	"brainfuck",
-	"c",
-	"c++",
-	"cjam",
-	"clojure",
-	"cobol",
-	"coffeescript",
-	"cow",
-	"crystal",
-	"csharp",
-	"csharp.net",
-	"d",
-	"dart",
-	"dash",
-	"dragon",
-	"elixir",
-	"emacs",
-	"erlang",
-	"file",
-	"forte",
-	"fortran",
-	"freebasic",
-	"fsharp.net",
-	"fsi",
-	"go",
-	"golfscript",
-	"groovy",
-	"haskell",
-	"husk",
-	"iverilog",
-	"japt",
-	"java",
-	"javascript",
-	"jelly",
-	"julia",
-	"kotlin",
-	"lisp",
-	"llvm_ir",
-	"lolcode",
-	"lua",
-	"nasm",
-	"nasm64",
-	"nim",
-	"ocaml",
-	"octave",
-	"osabie",
-	"paradoc",
-	"pascal",
-	"perl",
-	"php",
-	"ponylang",
-	"powershell",
-	"prolog",
-	"pure",
-	"pyth",
-	"python",
-	"python2",
-	"racket",
-	"raku",
-	"retina",
-	"rockstar",
-	"rscript",
-	"ruby",
-	"rust",
-	"scala",
-	"sqlite3",
-	"swift",
-	"typescript",
-	"basic",
-	"basic.net",
-	"vlang",
-	"vyxal",
-	"yeethon",
-	"zig",
-}
+var languages = make([]string, len(languageMappings))
 
 // Array of all available languages as well as their markdown codes.
 var languageMappings = map[string][]string{
