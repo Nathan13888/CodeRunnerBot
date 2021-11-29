@@ -130,15 +130,12 @@ func main() {
 			Msg("Error opening Disord connection.")
 	}
 
-	// Add all the application commands in the commands slice.
-	for _, cmd := range commands {
-		_, err := dg.ApplicationCommandCreate(dg.State.User.ID, GUILD_ID, &cmd)
-		if err != nil {
-			log.Fatal().
-				Err(err).
-				Str("command", cmd.Name).
-				Msg("Error creating command.")
-		}
+	createdCommands, err := dg.ApplicationCommandBulkOverwrite(dg.State.User.ID, GUILD_ID, commands)
+
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("Error creating commands.")
 	}
 
 	// Wait here until CTRL-C or other term signal is received.
@@ -147,10 +144,10 @@ func main() {
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 
-	for _, cmd := range commands {
+	for _, cmd := range createdCommands {
 		err := dg.ApplicationCommandDelete(dg.State.User.ID, GUILD_ID, cmd.ID)
 		if err != nil {
-			log.Fatal().
+			log.Error().
 				Err(err).
 				Str("command", cmd.Name).
 				Msg("Error deleting command.")
@@ -246,7 +243,7 @@ var languageMappings = map[string][]string{
 
 var (
 	// Commands slice of all available commands.
-	commands = []discordgo.ApplicationCommand{
+	commands = []*discordgo.ApplicationCommand{
 		{
 			Name: "Run Code",
 			Type: discordgo.MessageApplicationCommand,
