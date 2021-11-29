@@ -48,7 +48,7 @@ func init() {
 
 	PISTON_URL = os.Getenv("PISTON_URL")
 	if PISTON_URL == "" {
-		log.Info().Msg("PISTON_URL not found in .env file, using default API.")
+		log.Info().Msg("PISTON_URL not found in .env file, using default API endpoint.")
 		PISTON_URL = "https://emkc.org/api/v2/piston/"
 	}
 }
