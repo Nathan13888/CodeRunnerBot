@@ -267,6 +267,10 @@ var (
 			Name:        "help",
 			Description: "Shows the help message.",
 		},
+		{
+			Name:        "build_info",
+			Description: "Shows the build info for the bot.",
+		},
 	}
 
 	// CommandsHandlers map of all available commands and their corresponding handlers.
@@ -509,19 +513,67 @@ var (
 				i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: strings.Join([]string{
-							"**`/run [language]`**",
-							"Looks for a code message in the last 10 messages in the channel and executes it.",
-							"If the language is not specified, it will try to detect the language from the language specified after the backticks (e.g. \\`\\`\\`py).",
-							"",
-							"Run Code",
-							"Right click on any message to run it, if that message is a code message.",
-							"",
-							"Supported languages",
-							"```",
-							strings.Join(languages, " "),
-							"```",
-						}, "\n"),
+						Embeds: []*discordgo.MessageEmbed{
+							{
+								Title: "Help",
+								Fields: []*discordgo.MessageEmbedField{
+									{
+										Name:  "Run Code",
+										Value: "Right click on any message to run it, if that message is a code message.",
+									},
+									{
+										Name: "`/run [language]`",
+										Value: strings.Join([]string{
+											"Looks for a code message in the last 10 messages in the channel and executes it.",
+											"If the language is not specified, it will try to detect the language from the language specified after the backticks (e.g. \\`\\`\\`py).",
+										}, "\n"),
+									},
+									{
+										Name:  "Supported Languages",
+										Value: strings.Join(languages, ", "),
+									},
+								},
+							},
+						},
+					},
+				},
+			)
+
+			if err != nil {
+				log.Error().
+					Err(err).
+					Msg("Error responding to interaction.")
+				return
+			}
+		},
+		"build_info": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			err := s.InteractionRespond(
+				i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Embeds: []*discordgo.MessageEmbed{
+							{
+								Title: "Build Info",
+								Fields: []*discordgo.MessageEmbedField{
+									{
+										Name:  "Version",
+										Value: BuildVersion,
+									},
+									{
+										Name:  "Time",
+										Value: BuildTime,
+									},
+									{
+										Name:  "Operating System",
+										Value: GOOS,
+									},
+									{
+										Name:  "Architecture",
+										Value: ARCH,
+									},
+								},
+							},
+						},
 					},
 				},
 			)
