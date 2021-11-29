@@ -1,4 +1,6 @@
+.env
 TOKEN
+TODO.md
 .vscode
 
 bin/
