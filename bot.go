@@ -96,21 +96,13 @@ func main() {
 			Msg("Error creating Discord session.")
 	}
 
-	// Open a websocket connection to Discord and begin listening.
-	err = dg.Open()
-	if err != nil {
-		log.Fatal().
-			Err(err).
-			Msg("Error opening Disord connection.")
-	}
+	// Add a handler for the bot's status.
+	dg.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
+		s.UpdateListeningStatus("/run")
+	})
 
 	// Add guild messages intent.
 	dg.Identify.Intents = discordgo.IntentsGuildMessages
-
-	// Add a handler for the bot's status.
-	dg.AddHandler(func(s *discordgo.Session, event *discordgo.Ready) {
-		s.UpdateListeningStatus("/run")
-	})
 
 	// Add handler to run the corresponding function when a command is run.
 	dg.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -129,6 +121,14 @@ func main() {
 				Msg("Command recieved.")
 		}
 	})
+
+	// Open a websocket connection to Discord and begin listening.
+	err = dg.Open()
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("Error opening Disord connection.")
+	}
 
 	// Add all the application commands in the commands slice.
 	for _, cmd := range commands {
