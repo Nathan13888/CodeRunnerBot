@@ -277,7 +277,7 @@ var (
 					Msg("Error executing code.")
 
 				_, err := s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
-					Content: fmt.Sprintf("Error executing code: `%v`", err),
+					Content: fmt.Sprintf("Error executing code.```\n%v\n```", err),
 				})
 
 				if err != nil {
