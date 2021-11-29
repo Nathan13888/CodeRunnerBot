@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -14,7 +15,13 @@ import (
 	"github.com/rs/zerolog/pkgerrors"
 )
 
-var Token string
+var (
+	Token        string
+	BuildVersion string = "unknown"
+	BuildTime    string = "unknown"
+	GOOS         string = runtime.GOOS
+	ARCH         string = runtime.GOARCH
+)
 
 func init() {
 	// Initialize zerolog
@@ -245,7 +252,7 @@ var (
 			}
 
 			// Get output of executed code.
-			output, err := Exec(lang, code)
+			output, err := Exec(lang, "latest", code)
 
 			if err != nil {
 				log.Error().

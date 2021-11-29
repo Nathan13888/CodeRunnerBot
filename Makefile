@@ -3,6 +3,10 @@
 run:
 	TOKEN=$$(cat TOKEN) go run .
 
+run-build:
+	make build
+	TOKEN=$$(cat TOKEN) ./bin/crb
+
 build:
 	#echo $$GOOS
 	#echo $$GOARCH
