@@ -38,17 +38,21 @@ func init() {
 	// Load environment from .env.
 	err := godotenv.Load(".env")
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error loading .env file")
+		log.Fatal().
+			Err(err).
+			Msg("Error loading .env file")
 	}
 
 	Token = os.Getenv("TOKEN")
 	if Token == "" {
-		log.Fatal().Msg("TOKEN not found in .env file")
+		log.Fatal().
+			Msg("TOKEN not found in .env file")
 	}
 
 	PISTON_URL = os.Getenv("PISTON_URL")
 	if PISTON_URL == "" {
-		log.Info().Msg("PISTON_URL not found in .env file, using default API endpoint.")
+		log.Info().
+			Msg("PISTON_URL not found in .env file, using default API endpoint.")
 		PISTON_URL = "https://emkc.org/api/v2/piston/"
 	}
 }
