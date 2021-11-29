@@ -2,10 +2,8 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"os/signal"
-	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -56,7 +54,7 @@ func main() {
 	dg, err := discordgo.New("Bot " + Token)
 	// TODO: set activity/status
 	if err != nil {
-		log.Error().Err(err).Msg("error creating Discord session")
+		log.Error().Err(err).Msg("Error creating Discord session")
 		return
 	}
 
@@ -170,102 +168,76 @@ const MAX_EXECTIME time.Duration = 60 * time.Second
 // TODO: yeet this for SLASH commands
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Ignore all messages created by the bot itself
-	if m.Author.ID == s.State.User.ID {
+	if m.Author.ID == s.State.User.ID || !isCodeMessage(m.Message) {
 		return
 	}
 
-	lines := strings.Split(m.Content, "\n")
+	log.Debug().
+		Str("author", m.Author.Username).
+		Str("channel", m.ChannelID).
+		Msg("Code Message")
 
-	re := regexp.MustCompile(" +")
-	split := re.Split(strings.TrimSpace(lines[0]), -1)
+	lang, code := getLanguageAndCodeFromMessage(m.Message)
 
-	cmd := split[0]
-	args := split[1:]
-
-	// TODO: add support for other commands
-	if cmd != "!run" {
+	if lang == "" {
 		return
 	}
 
-	if len(args) == 0 {
-		return
-	}
+	log.Debug().
+		Str("lang", lang).
+		Msg("Language detected")
 
-	log.Info().Str("user", m.Author.Username).Msg("Executed Command")
-
-	log.Debug().Strs("lines", lines).Str("cmd", cmd).Strs("args", args).Msg("Received Command")
-
-	// proper format: back ticks, valid language
-	lang := strings.ToLower(args[0]) // spaces don't need to be trimmed since do to the way arguments are split
-
-	validLanguage := false
-	for l := range languages {
-		if strings.EqualFold(l, lang) {
-			validLanguage = true
-			break
-		}
-	}
-	if !validLanguage {
-		sendMessage(s, m.ChannelID, "Invalid input: language '"+lang+"' is not supported")
-		return
-	}
-
-	var code string
-	if len(lines) > 3 {
-		process := lines[1:]
-		if !(process[0] == "```" && process[len(process)-1] == "```") {
-			sendMessage(s, m.ChannelID, "Invalid input: you must put code in code blocks")
-			return
-		}
-		for i := 1; i < len(process)-1; i++ {
-			code += process[i] + "\n"
-		}
-		log.Debug().Str("code", code).Msg("Running Code")
-	} else if len(lines) == 3 {
-		sendMessage(s, m.ChannelID, "Invalid input: do you have any code?")
-		return
-	} else if len(lines) < 3 {
-		sendMessage(s, m.ChannelID, "Invalid input: too few lines")
-		return
-	}
-
-	// exec; check max exec time
 	output, err := Exec(lang, code)
 	if err != nil {
 		sendMessage(s, m.ChannelID, fmt.Sprintf("Encountered Error: %v", err))
 		return
 	}
 
-	// crop command output is the command is too long
-	template := "Received Output:\n```\n%s\n```\n"
-	buffer := len(template) + 3 - 5 // adjusts for 5 extra characters which won't be counted by discord
-	croppedMessage, cropped := cropMessage(output, buffer)
-	if cropped > 0 {
-		// length of crop message is 22 + length of number `cropped`
-		template += fmt.Sprintf("(cropped %d characters)\n", cropped)
+	for _, message := range splitOutput(output, 500) {
+		sendMessage(s, m.ChannelID, message)
 	}
-	response := fmt.Sprintf(template, croppedMessage)
-	log.Debug().Str("output", response).Int("cropped", cropped).Int("final_length", len(response)).Msg("Completed command output")
-	sendMessage(s, m.ChannelID, response)
+}
+
+func isCodeMessage(m *discordgo.Message) bool {
+	c := strings.Split(strings.ReplaceAll(m.Content, "\r\n", "\n"), "\n")
+	if c[0][:3] != "```" || c[len(c)-1] != "```" || len(c) < 3 {
+		return false
+	}
+	return true
+}
+
+func getLanguageAndCodeFromMessage(m *discordgo.Message) (string, string) {
+	c := strings.Split(strings.ReplaceAll(m.Content, "\r\n", "\n"), "\n")
+	if c[0][:3] != "```" || c[len(c)-1] != "```" || len(c) < 3 {
+		return "", ""
+	}
+
+	for i, j := range languages {
+		for _, k := range j {
+			if strings.EqualFold(k, c[0][3:]) {
+				return i, strings.Join(c[1:len(c)-1], "\n")
+			}
+		}
+	}
+
+	return "", ""
 }
 
 //const MSG_CHAR_LIM = 2000
 const MSG_CHAR_LIM = 500 // to avoid getting rate limited
 
-func cropMessage(toCrop string, buffer int) (string, int) {
-	if len(toCrop)+buffer < MSG_CHAR_LIM {
-		return toCrop, 0
+func splitOutput(output string, limit int) []string {
+	var messages []string
+	codeLimit := limit - 8
+
+	for len(output) > limit {
+		messages = append(messages, "```\n"+output[:codeLimit]+"\n```")
+		output = output[limit:]
 	}
-	// lazy crop... (could crop extra characters which might not need to be cropped)
-	end := MSG_CHAR_LIM - buffer - 22
-	cropped := len(toCrop) - end
-	end -= int(math.Log10(float64(cropped))) + 1 // remove estimate of number of characters that the number takes
-	if toCrop[end-2] == '/' && toCrop[end-3] != '/' {
-		end -= 2 // remove whatever is the last
-	} else if toCrop[end-1] == '/' {
-		end--
-	}
-	return toCrop[:end], len(toCrop) - end // recalculated cropped
+
+	messages = append(messages, "```\n"+output+"\n```")
+
+	return messages
 }
 
 func sendMessage(session *discordgo.Session, channelID string, message string) error {
