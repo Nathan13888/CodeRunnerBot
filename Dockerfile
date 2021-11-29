@@ -23,6 +23,4 @@ USER bot
 
 COPY --from=builder --chown=bot /build/bin/crb /app/bot
 
-ENV TOKEN=""
-
 ENTRYPOINT [ "/app/bot"]

@@ -25,13 +25,19 @@ var (
 	GOOS         string = runtime.GOOS
 	ARCH         string = runtime.GOARCH
 	PISTON_URL   string
+	DOTENV       string
 )
 
 func init() {
-	err := godotenv.Load(".env")
+	DOTENV = os.Getenv("DOTENV")
+	if len(DOTENV) == 0 {
+		DOTENV = ".env"
+	}
+	err := godotenv.Load(DOTENV)
 	if err != nil {
 		panic("Error loading .env file")
 	}
+
 	Token = os.Getenv("TOKEN")
 	if Token == "" {
 		panic("empty token...")
