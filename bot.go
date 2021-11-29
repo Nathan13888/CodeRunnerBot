@@ -200,17 +200,11 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 func isCodeMessage(m *discordgo.Message) bool {
 	c := strings.Split(strings.ReplaceAll(m.Content, "\r\n", "\n"), "\n")
-	if c[0][:3] != "```" || c[len(c)-1] != "```" || len(c) < 3 {
-		return false
-	}
-	return true
+	return c[0][:3] == "```" && c[len(c)-1] == "```"
 }
 
 func getLanguageAndCodeFromMessage(m *discordgo.Message) (string, string) {
 	c := strings.Split(strings.ReplaceAll(m.Content, "\r\n", "\n"), "\n")
-	if c[0][:3] != "```" || c[len(c)-1] != "```" || len(c) < 3 {
-		return "", ""
-	}
 
 	for i, j := range languages {
 		for _, k := range j {
