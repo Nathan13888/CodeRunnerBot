@@ -48,7 +48,8 @@ func init() {
 	if err != nil {
 		log.Fatal().
 			Err(err).
-			Msg(fmt.Sprintf("Error loading environment file: \"%s\"", DOTENV))
+			Str("file", DOTENV).
+			Msg("Error loading environment file.")
 	}
 
 	Token = os.Getenv("TOKEN")
@@ -82,38 +83,35 @@ func main() {
 			Msg("Error opening Disord connection.")
 	}
 
+	// Add guild messages intent.
+	dg.Identify.Intents = discordgo.IntentsGuildMessages
+
 	// Add handler to run the corresponding function when a command is run.
 	dg.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if h, ok := commandsHandlers[i.ApplicationCommandData().Name]; ok {
 			h(s, i)
 
 			log.Debug().
-				Str("message_id",
-					i.ApplicationCommandData().
-						Resolved.
-						Messages[i.ApplicationCommandData().TargetID].
-						ID).
+				Str("command",
+					i.ApplicationCommandData().Name).
 				Str("user_id",
-					i.ApplicationCommandData().
-						Resolved.
-						Messages[i.ApplicationCommandData().TargetID].
-						Author.ID).
+					i.Member.User.ID).
 				Str("channel_id",
-					i.ApplicationCommandData().
-						Resolved.
-						Messages[i.ApplicationCommandData().TargetID].
-						ChannelID).
-				Msg(fmt.Sprintf("Command recieved: \"%s\"", i.ApplicationCommandData().Name))
+					i.ChannelID).
+				Str("guild_id",
+					i.GuildID).
+				Msg("Command recieved.")
 		}
 	})
 
 	// Add all the application commands in the commands slice.
 	for _, cmd := range commands {
-		_, err := dg.ApplicationCommandCreate(dg.State.User.ID, "914901044595658782", &cmd)
+		_, err := dg.ApplicationCommandCreate(dg.State.User.ID, "", &cmd)
 		if err != nil {
 			log.Fatal().
 				Err(err).
-				Msg(fmt.Sprintf("Error creating command: \"%s\"", cmd.Name))
+				Str("command", cmd.Name).
+				Msg("Error creating command.")
 		}
 	}
 
@@ -123,12 +121,102 @@ func main() {
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 
+	for _, cmd := range commands {
+		err := dg.ApplicationCommandDelete(dg.State.User.ID, "", cmd.ID)
+		if err != nil {
+			log.Fatal().
+				Err(err).
+				Str("command", cmd.Name).
+				Msg("Error deleting command.")
+		}
+	}
+
 	// Cleanly close the Discord session.
 	dg.Close()
 }
 
+var languages = []string{
+	"awk",
+	"bash",
+	"befunge93",
+	"brainfuck",
+	"c",
+	"c++",
+	"cjam",
+	"clojure",
+	"cobol",
+	"coffeescript",
+	"cow",
+	"crystal",
+	"csharp",
+	"csharp.net",
+	"d",
+	"dart",
+	"dash",
+	"dragon",
+	"elixir",
+	"emacs",
+	"erlang",
+	"file",
+	"forte",
+	"fortran",
+	"freebasic",
+	"fsharp.net",
+	"fsi",
+	"go",
+	"golfscript",
+	"groovy",
+	"haskell",
+	"husk",
+	"iverilog",
+	"japt",
+	"java",
+	"javascript",
+	"jelly",
+	"julia",
+	"kotlin",
+	"lisp",
+	"llvm_ir",
+	"lolcode",
+	"lua",
+	"nasm",
+	"nasm64",
+	"nim",
+	"ocaml",
+	"octave",
+	"osabie",
+	"paradoc",
+	"pascal",
+	"perl",
+	"php",
+	"ponylang",
+	"powershell",
+	"prolog",
+	"pure",
+	"pyth",
+	"python",
+	"python2",
+	"racket",
+	"raku",
+	"retina",
+	"rockstar",
+	"rscript",
+	"ruby",
+	"rust",
+	"scala",
+	"sqlite3",
+	"swift",
+	"typescript",
+	"basic",
+	"basic.net",
+	"vlang",
+	"vyxal",
+	"yeethon",
+	"zig",
+}
+
 // Array of all available languages as well as their markdown codes.
-var languages = map[string][]string{
+var languageMappings = map[string][]string{
 	"awk":          {"awk"},
 	"bash":         {"bash", "sh", "zsh", "ksh", "shell"},
 	"befunge93":    {"befunge"},
@@ -215,6 +303,18 @@ var (
 			Name: "Run Code",
 			Type: discordgo.MessageApplicationCommand,
 		},
+		{
+			Name:        "run",
+			Description: "Runs code in a language. Run this command in a reply to a code message.",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:        "language",
+					Description: "The language to run the code in.",
+					Type:        discordgo.ApplicationCommandOptionString,
+					Required:    false,
+				},
+			},
+		},
 	}
 
 	// CommandsHandlers map of all available commands and their corresponding handlers.
@@ -228,7 +328,9 @@ var (
 			)
 
 			if err != nil {
-				log.Error().Err(err).Msg("Error responding to interaction.")
+				log.Error().
+					Err(err).
+					Msg("Error responding to interaction.")
 				return
 			}
 
@@ -310,6 +412,146 @@ var (
 				}
 			}
 		},
+		"run": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			// Send deferred message, telling the user that a response is coming shortly.
+			err := s.InteractionRespond(
+				i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+				},
+			)
+
+			if err != nil {
+				log.Error().
+					Err(err).
+					Msg("Error responding to interaction.")
+				return
+			}
+
+			// Get last 10 messages in channel.
+			messages, err := s.ChannelMessages(i.ChannelID, 10, "", "", "")
+
+			if err != nil {
+				log.Error().
+					Err(err).
+					Msg("Error getting messages in channel.")
+
+				_, err := s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
+					Content: "Error getting messages in channel.",
+				})
+
+				if err != nil {
+					log.Error().
+						Err(err).
+						Msg("Error sending followup message.")
+				}
+
+				return
+			}
+
+			// Check if any of those messages is a code message.
+			var message *discordgo.Message
+
+			for _, m := range messages {
+				if isCodeMessage(m) {
+					message = m
+					break
+				}
+			}
+
+			if (message == &discordgo.Message{}) {
+				_, err := s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
+					Content: "No code messages found in the last 10 messages. Did you remember to wrap your code in backticks (```)?",
+				})
+
+				if err != nil {
+					log.Error().
+						Err(err).
+						Msg("Error sending followup message.")
+				}
+
+				return
+			}
+
+			// Get the language and code from the message.
+			lang, code := getLanguageAndCodeFromMessage(message)
+
+			if len(i.ApplicationCommandData().Options) > 0 {
+				lang = i.ApplicationCommandData().Options[0].StringValue()
+
+				log.Debug().
+					Str("language", lang).
+					Msg("Language found from options.")
+
+				if !stringInSlice(lang, languages) {
+					_, err := s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
+						Content: fmt.Sprintf("Language %v is not supported. Supported languages are: %v", lang, languages),
+					})
+
+					if err != nil {
+						log.Error().
+							Err(err).
+							Msg("Error sending followup message.")
+					}
+
+					return
+				}
+			}
+
+			if lang != "" {
+				log.Debug().
+					Str("language", lang).
+					Msg("Language found from message.")
+			} else {
+				log.Debug().
+					Msg("No language found from message.")
+
+				_, err := s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
+					Content: "No language provided. Did you remember to put a valid language after the opening backticks? (```py)",
+				})
+
+				if err != nil {
+					log.Error().
+						Err(err).
+						Msg("Error sending followup message.")
+				}
+
+				return
+			}
+
+			// Get output of executed code.
+			output, err := Exec(lang, "", code)
+
+			if err != nil {
+				log.Error().
+					Err(err).
+					Msg("Error executing code.")
+
+				_, err := s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
+					Content: fmt.Sprintf("Error executing code.```\n%v\n```", err),
+				})
+
+				if err != nil {
+					log.Error().
+						Err(err).
+						Msg("Error sending followup message.")
+				}
+
+				return
+			}
+
+			// Split code output into chunks of 500 characters and send them as followup messages.
+			for _, message := range splitOutput(output, 500) {
+				_, err := s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
+					Content: message,
+				})
+
+				if err != nil {
+					log.Error().
+						Err(err).
+						Msg("Error sending followup message.")
+				}
+			}
+		},
 	}
 )
 
@@ -331,7 +573,7 @@ func getLanguageAndCodeFromMessage(m *discordgo.Message) (string, string) {
 	c := strings.Split(strings.ReplaceAll(m.Content, "\r\n", "\n"), "\n")
 
 	// Get language from first line.
-	for i, j := range languages {
+	for i, j := range languageMappings {
 		for _, k := range j {
 			// Check if the language in the first line is a valid language.
 			if strings.EqualFold(k, c[0][3:]) {
@@ -360,4 +602,13 @@ func splitOutput(output string, limit int) []string {
 	messages = append(messages, "```\n"+output+"\n```")
 
 	return messages
+}
+
+func stringInSlice(s string, a []string) bool {
+	for _, i := range a {
+		if i == s {
+			return true
+		}
+	}
+	return false
 }
