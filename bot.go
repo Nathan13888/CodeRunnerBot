@@ -57,9 +57,6 @@ func main() {
 		return
 	}
 
-	// Register the messageCreate func as a callback for MessageCreate events.
-	dg.AddHandler(messageCreate)
-
 	// Just like the ping pong example, we only care about receiving message
 	// events in this example.
 	dg.Identify.Intents = discordgo.IntentsGuildMessages
@@ -242,13 +239,6 @@ var (
 		},
 	}
 )
-
-func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	// Ignore all messages created by the bot itself
-	if m.Author.ID == s.State.User.ID || !isCodeMessage(m.Message) {
-		return
-	}
-}
 
 func isCodeMessage(m *discordgo.Message) bool {
 	c := strings.Split(strings.ReplaceAll(m.Content, "\r\n", "\n"), "\n")
