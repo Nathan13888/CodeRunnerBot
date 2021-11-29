@@ -17,64 +17,46 @@ import (
 var Token string
 
 func init() {
-	Token = os.Getenv("TOKEN")
-	if Token == "" {
-		panic("empty token...")
-	} else if len(Token) < 10 {
-		panic("token seems too short...")
-	}
-
+	// Initialize zerolog
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	zerolog.TimeFieldFormat = time.RFC3339
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
 	multi := zerolog.MultiLevelWriter(consoleWriter)
 	log.Logger = zerolog.New(multi).With().Timestamp().Logger()
 
-	log.Debug().Msg("Using token: " + Token[:10])
-
-	allowedLanguages := make([]string, len(languages))
-
-	i := 0
-	for k := range languages {
-		allowedLanguages[i] = k
-		i++
+	// Stop the bot if the TOKEN environment variable is not set.
+	Token = os.Getenv("TOKEN")
+	if Token == "" {
+		log.Fatal().Msg("Token not found. Did you forget to set the TOKEN environment variable?")
 	}
-
-	log.Debug().
-		Strs("allowed_languages", allowedLanguages).
-		Int("msg_char_lim", MSG_CHAR_LIM).
-		Msg("Configured Settings")
 }
 
 func main() {
 	// Create a new Discord session using the provided bot token.
 	dg, err := discordgo.New("Bot " + Token)
-	// TODO: set activity/status
 	if err != nil {
-		log.Error().Err(err).Msg("Error creating Discord session")
-		return
+		log.Fatal().Err(err).Msg("Error creating Discord session.")
 	}
 
 	// Open a websocket connection to Discord and begin listening.
 	err = dg.Open()
 	if err != nil {
-		log.Error().Err(err).Msg("error opening connection")
-		return
+		log.Fatal().Err(err).Msg("Error opening Disord connection.")
 	}
 
+	// Add handler to run the corresponding function when a command is run.
 	dg.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if h, ok := commandsHandlers[i.ApplicationCommandData().Name]; ok {
 			h(s, i)
 		}
 	})
 
+	// Add all the application commands in the commands slice.
 	for _, cmd := range commands {
 		_, err := dg.ApplicationCommandCreate(dg.State.User.ID, "", &cmd)
 		if err != nil {
-			log.Error().Err(err).Msg("error creating command")
-			return
+			log.Fatal().Err(err).Msg(fmt.Sprintf("Error creating command: \"%s\"", cmd.Name))
 		}
 	}
 
@@ -84,14 +66,16 @@ func main() {
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 
+	// Delete all commands.
 	for _, cmd := range commands {
 		dg.ApplicationCommandDelete(dg.State.User.ID, "", cmd.ID)
 	}
 
-	// Cleanly close down the Discord session.
+	// Cleanly close the Discord session.
 	dg.Close()
 }
 
+// Array of all available languages as well as their markdown codes.
 var languages = map[string][]string{
 	"awk":          {"awk"},
 	"bash":         {"bash", "sh", "zsh", "ksh", "shell"},
@@ -173,64 +157,103 @@ var languages = map[string][]string{
 }
 
 var (
+	// Commands slice of all available commands.
 	commands = []discordgo.ApplicationCommand{
 		{
 			Name: "Run Code",
 			Type: discordgo.MessageApplicationCommand,
 		},
 	}
+
+	// CommandsHandlers map of all available commands and their corresponding handlers.
 	commandsHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		"Run Code": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			log.Debug().
+				Str("user", i.User.ID).
+				Str("channel", i.ChannelID).
+				Str("guild", i.GuildID).
+				Msg("Command recieved: \"Run Code\"")
+
+			// Send deferred message, telling the user that a response is coming shortly.
 			err := s.InteractionRespond(
 				i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 				},
 			)
 
-			message := i.ApplicationCommandData().
-				Resolved.Messages[i.ApplicationCommandData().TargetID]
-
 			if err != nil {
-				log.Error().Err(err).Msg("error responding to interaction")
+				log.Error().Err(err).Msg("Error responding to interaction.")
 				return
 			}
 
+			message := i.ApplicationCommandData().
+				Resolved.
+				Messages[i.ApplicationCommandData().TargetID]
+
 			if !isCodeMessage(message) {
-				s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
-					Content: "Not a code message. Did you remember to wrap your code in backticks (```)?",
+				_, err := s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
+					Content: "Message is not a code message. Did you remember to wrap your code in backticks (```)?",
 				})
+
+				if err != nil {
+					log.Error().
+						Err(err).
+						Msg("Error sending followup message.")
+				}
+
 				return
 			}
 
 			lang, code := getLanguageAndCodeFromMessage(message)
 
 			log.Debug().
-				Str("lang", lang).
-				Msg("Language detected")
+				Str("language", lang).
+				Msg("Language found from message.")
 
 			if lang == "" {
-				s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
+				_, err := s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
 					Content: "No language provided. Did you remember to put a language after the opening backticks? (```py)",
 				})
+
+				if err != nil {
+					log.Error().
+						Err(err).
+						Msg("Error sending followup message.")
+				}
+
 				return
 			}
 
 			output, err := Exec(lang, code)
+
+			log.Error().
+				Err(err).
+				Msg("Error executing code.")
+
 			if err != nil {
-				s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
-					Content: fmt.Sprintf("Encountered error while running code: %v", err),
+				_, err := s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
+					Content: fmt.Sprintf("Error executing code: `%v`", err),
 				})
+
+				if err != nil {
+					log.Error().
+						Err(err).
+						Msg("Error sending followup message.")
+				}
+
 				return
 			}
 
 			for _, message := range splitOutput(output, 500) {
-				s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
+				_, err := s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
 					Content: message,
 				})
-			}
 
-			if err != nil {
-				panic(err)
+				if err != nil {
+					log.Error().
+						Err(err).
+						Msg("Error sending followup message.")
+				}
 			}
 		},
 	}
@@ -257,9 +280,6 @@ func getLanguageAndCodeFromMessage(m *discordgo.Message) (string, string) {
 
 	return "", ""
 }
-
-//const MSG_CHAR_LIM = 2000
-const MSG_CHAR_LIM = 500 // to avoid getting rate limited
 
 func splitOutput(output string, limit int) []string {
 	var messages []string
