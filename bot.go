@@ -99,6 +99,11 @@ func main() {
 	// Add guild messages intent.
 	dg.Identify.Intents = discordgo.IntentsGuildMessages
 
+	// Add a handler for the bot's status.
+	dg.AddHandler(func(s *discordgo.Session, event *discordgo.Ready) {
+		s.UpdateListeningStatus("/run")
+	})
+
 	// Add handler to run the corresponding function when a command is run.
 	dg.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if h, ok := commandsHandlers[i.ApplicationCommandData().Name]; ok {
