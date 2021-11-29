@@ -1,15 +1,13 @@
 .DEFAULT_GOAL := run
 
 run:
-	TOKEN=$$(cat TOKEN) go run .
+	go run .
 
 run-build:
 	make build
-	TOKEN=$$(cat TOKEN) ./bin/crb
+	./bin/crb
 
 build:
-	#echo $$GOOS
-	#echo $$GOARCH
 	go build -o bin/crb -ldflags "\
 		-X 'main.BuildVersion=$$(git rev-parse --abbrev-ref HEAD)' \
 		-X 'main.BuildTime=$$(date)' \
