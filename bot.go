@@ -27,7 +27,6 @@ var (
 )
 
 func init() {
-
 	// Initialize zerolog
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	zerolog.TimeFieldFormat = time.RFC3339
