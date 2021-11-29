@@ -130,6 +130,7 @@ func main() {
 			Msg("Error opening Disord connection.")
 	}
 
+	// Create all commands.
 	createdCommands, err := dg.ApplicationCommandBulkOverwrite(dg.State.User.ID, GUILD_ID, commands)
 
 	if err != nil {
@@ -144,6 +145,7 @@ func main() {
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 
+	// Delete all commands on shutdown.
 	for _, cmd := range createdCommands {
 		err := dg.ApplicationCommandDelete(dg.State.User.ID, GUILD_ID, cmd.ID)
 		if err != nil {
