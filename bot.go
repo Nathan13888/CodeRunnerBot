@@ -23,6 +23,7 @@ var (
 	GOOS         string = runtime.GOOS
 	ARCH         string = runtime.GOARCH
 	PISTON_URL   string
+	DOTENV       string
 )
 
 func init() {
@@ -36,11 +37,18 @@ func init() {
 	log.Logger = zerolog.New(multi).With().Timestamp().Logger()
 
 	// Load environment from .env.
+	DOTENV = os.Getenv("DOTENV")
+	if len(DOTENV) == 0 {
+		log.Info().
+			Msg("Environment variable DOTENV not found, using default .env file.")
+		DOTENV = ".env"
+	}
+
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatal().
 			Err(err).
-			Msg("Error loading .env file.")
+			Msg(fmt.Sprintf("Error loading environment file: \"%s\"", DOTENV))
 	}
 
 	Token = os.Getenv("TOKEN")
