@@ -59,7 +59,7 @@ func main() {
 
 	// Add all the application commands in the commands slice.
 	for _, cmd := range commands {
-		_, err := dg.ApplicationCommandCreate(dg.State.User.ID, "", &cmd)
+		_, err := dg.ApplicationCommandCreate(dg.State.User.ID, "914901044595658782", &cmd)
 		if err != nil {
 			log.Fatal().
 				Err(err).
@@ -72,17 +72,6 @@ func main() {
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
-
-	// Delete all commands.
-	for _, cmd := range commands {
-		err := dg.ApplicationCommandDelete(dg.State.User.ID, "", cmd.ID)
-
-		if err != nil {
-			log.Error().
-				Err(err).
-				Msg(fmt.Sprintf("Error deleting command: \"%s\"", cmd.Name))
-		}
-	}
 
 	// Cleanly close the Discord session.
 	dg.Close()
@@ -182,9 +171,21 @@ var (
 	commandsHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		"Run Code": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			log.Debug().
-				Str("user", i.User.ID).
-				Str("channel", i.ChannelID).
-				Str("guild", i.GuildID).
+				Str("message_id",
+					i.ApplicationCommandData().
+						Resolved.
+						Messages[i.ApplicationCommandData().TargetID].
+						ID).
+				Str("user_id",
+					i.ApplicationCommandData().
+						Resolved.
+						Messages[i.ApplicationCommandData().TargetID].
+						Author.ID).
+				Str("channel_id",
+					i.ApplicationCommandData().
+						Resolved.
+						Messages[i.ApplicationCommandData().TargetID].
+						ChannelID).
 				Msg("Command recieved: \"Run Code\"")
 
 			// Send deferred message, telling the user that a response is coming shortly.
@@ -222,11 +223,14 @@ var (
 			// Get the language and code from the message.
 			lang, code := getLanguageAndCodeFromMessage(message)
 
-			log.Debug().
-				Str("language", lang).
-				Msg("Language found from message.")
+			if lang != "" {
+				log.Debug().
+					Str("language", lang).
+					Msg("Language found from message.")
+			} else {
+				log.Debug().
+					Msg("No language found from message.")
 
-			if lang == "" {
 				_, err := s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
 					Content: "No language provided. Did you remember to put a valid language after the opening backticks? (```py)",
 				})
@@ -243,11 +247,11 @@ var (
 			// Get output of executed code.
 			output, err := Exec(lang, code)
 
-			log.Error().
-				Err(err).
-				Msg("Error executing code.")
-
 			if err != nil {
+				log.Error().
+					Err(err).
+					Msg("Error executing code.")
+
 				_, err := s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
 					Content: fmt.Sprintf("Error executing code: `%v`", err),
 				})
