@@ -28,7 +28,8 @@ func init() {
 	// Stop the bot if the TOKEN environment variable is not set.
 	Token = os.Getenv("TOKEN")
 	if Token == "" {
-		log.Fatal().Msg("Token not found. Did you forget to set the TOKEN environment variable?")
+		log.Fatal().
+			Msg("Token not found. Did you forget to set the TOKEN environment variable?")
 	}
 }
 
@@ -36,13 +37,17 @@ func main() {
 	// Create a new Discord session using the provided bot token.
 	dg, err := discordgo.New("Bot " + Token)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error creating Discord session.")
+		log.Fatal().
+			Err(err).
+			Msg("Error creating Discord session.")
 	}
 
 	// Open a websocket connection to Discord and begin listening.
 	err = dg.Open()
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error opening Disord connection.")
+		log.Fatal().
+			Err(err).
+			Msg("Error opening Disord connection.")
 	}
 
 	// Add handler to run the corresponding function when a command is run.
@@ -56,7 +61,9 @@ func main() {
 	for _, cmd := range commands {
 		_, err := dg.ApplicationCommandCreate(dg.State.User.ID, "", &cmd)
 		if err != nil {
-			log.Fatal().Err(err).Msg(fmt.Sprintf("Error creating command: \"%s\"", cmd.Name))
+			log.Fatal().
+				Err(err).
+				Msg(fmt.Sprintf("Error creating command: \"%s\"", cmd.Name))
 		}
 	}
 
@@ -68,7 +75,13 @@ func main() {
 
 	// Delete all commands.
 	for _, cmd := range commands {
-		dg.ApplicationCommandDelete(dg.State.User.ID, "", cmd.ID)
+		err := dg.ApplicationCommandDelete(dg.State.User.ID, "", cmd.ID)
+
+		if err != nil {
+			log.Error().
+				Err(err).
+				Msg(fmt.Sprintf("Error deleting command: \"%s\"", cmd.Name))
+		}
 	}
 
 	// Cleanly close the Discord session.
@@ -186,10 +199,12 @@ var (
 				return
 			}
 
+			// Get message from ApplicationCommandData.
 			message := i.ApplicationCommandData().
 				Resolved.
 				Messages[i.ApplicationCommandData().TargetID]
 
+			// Check if the message is a code message.
 			if !isCodeMessage(message) {
 				_, err := s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
 					Content: "Message is not a code message. Did you remember to wrap your code in backticks (```)?",
@@ -204,6 +219,7 @@ var (
 				return
 			}
 
+			// Get the language and code from the message.
 			lang, code := getLanguageAndCodeFromMessage(message)
 
 			log.Debug().
@@ -212,7 +228,7 @@ var (
 
 			if lang == "" {
 				_, err := s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
-					Content: "No language provided. Did you remember to put a language after the opening backticks? (```py)",
+					Content: "No language provided. Did you remember to put a valid language after the opening backticks? (```py)",
 				})
 
 				if err != nil {
@@ -224,6 +240,7 @@ var (
 				return
 			}
 
+			// Get output of executed code.
 			output, err := Exec(lang, code)
 
 			log.Error().
@@ -244,6 +261,7 @@ var (
 				return
 			}
 
+			// Split code output into chunks of 500 characters and send them as followup messages.
 			for _, message := range splitOutput(output, 500) {
 				_, err := s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
 					Content: message,
@@ -260,18 +278,26 @@ var (
 )
 
 func isCodeMessage(m *discordgo.Message) bool {
+	// Split on newlines.
 	c := strings.Split(strings.ReplaceAll(m.Content, "\r\n", "\n"), "\n")
+
+	// Check if the number of lines is greater than 1.
 	if len(c) < 2 {
 		return false
 	}
+
+	// Check if the first line starts with 3 backticks, and the last line is 3 backticks.
 	return c[0][:3] == "```" && c[len(c)-1] == "```"
 }
 
 func getLanguageAndCodeFromMessage(m *discordgo.Message) (string, string) {
+	// Split on newlines.
 	c := strings.Split(strings.ReplaceAll(m.Content, "\r\n", "\n"), "\n")
 
+	// Get language from first line.
 	for i, j := range languages {
 		for _, k := range j {
+			// Check if the language in the first line is a valid language.
 			if strings.EqualFold(k, c[0][3:]) {
 				return i, strings.Join(c[1:len(c)-1], "\n")
 			}
@@ -282,14 +308,19 @@ func getLanguageAndCodeFromMessage(m *discordgo.Message) (string, string) {
 }
 
 func splitOutput(output string, limit int) []string {
+	// Initialize slice of messages.
 	var messages []string
+
+	// Remove the 6 backticks and 2 newlines from the limit.
 	codeLimit := limit - 8
 
+	// While the output is larger than the limit, add limit-sized chunks to the slice.
 	for len(output) > limit {
 		messages = append(messages, "```\n"+output[:codeLimit]+"\n```")
 		output = output[limit:]
 	}
 
+	// Add the remaining output to the slice.
 	messages = append(messages, "```\n"+output+"\n```")
 
 	return messages
