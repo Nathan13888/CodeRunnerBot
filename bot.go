@@ -40,13 +40,13 @@ func init() {
 	if err != nil {
 		log.Fatal().
 			Err(err).
-			Msg("Error loading .env file")
+			Msg("Error loading .env file.")
 	}
 
 	Token = os.Getenv("TOKEN")
 	if Token == "" {
 		log.Fatal().
-			Msg("TOKEN not found in .env file")
+			Msg("TOKEN not found in .env file.")
 	}
 
 	PISTON_URL = os.Getenv("PISTON_URL")
