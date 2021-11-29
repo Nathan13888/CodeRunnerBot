@@ -17,13 +17,14 @@ import (
 )
 
 var (
-	Token        string
+	TOKEN        string
+	PISTON_URL   string
+	DOTENV       string
+	GUILD_ID     string
 	BuildVersion string = "unknown"
 	BuildTime    string = "unknown"
 	GOOS         string = runtime.GOOS
 	ARCH         string = runtime.GOARCH
-	PISTON_URL   string
-	DOTENV       string
 )
 
 func init() {
@@ -51,8 +52,8 @@ func init() {
 			Msg("Error loading environment file.")
 	}
 
-	Token = os.Getenv("TOKEN")
-	if Token == "" {
+	TOKEN = os.Getenv("TOKEN")
+	if TOKEN == "" {
 		log.Fatal().
 			Msg("TOKEN not found in .env file.")
 	}
@@ -62,6 +63,12 @@ func init() {
 		log.Info().
 			Msg("PISTON_URL not found in .env file, using default API endpoint.")
 		PISTON_URL = "https://emkc.org/api/v2/piston/"
+	}
+
+	GUILD_ID = os.Getenv("GUILD_ID")
+	if GUILD_ID == "" {
+		log.Info().
+			Msg("GUILD_ID not found in .env file, registering commands globally.")
 	}
 
 	// Log the languages and environment.
@@ -74,14 +81,15 @@ func init() {
 	log.Debug().
 		Strs("languages", languages).
 		Str("env_file", DOTENV).
-		Str("token", Token[:10]+strings.Repeat("*", len(Token)-10)).
+		Str("token", TOKEN[:10]+strings.Repeat("*", len(TOKEN)-10)).
 		Str("piston_url", PISTON_URL).
+		Str("guild_id", GUILD_ID).
 		Msg("Configured settings.")
 }
 
 func main() {
 	// Create a new Discord session using the provided bot token.
-	dg, err := discordgo.New("Bot " + Token)
+	dg, err := discordgo.New("Bot " + TOKEN)
 	if err != nil {
 		log.Fatal().
 			Err(err).
@@ -124,7 +132,7 @@ func main() {
 
 	// Add all the application commands in the commands slice.
 	for _, cmd := range commands {
-		_, err := dg.ApplicationCommandCreate(dg.State.User.ID, "", &cmd)
+		_, err := dg.ApplicationCommandCreate(dg.State.User.ID, GUILD_ID, &cmd)
 		if err != nil {
 			log.Fatal().
 				Err(err).
@@ -140,7 +148,7 @@ func main() {
 	<-sc
 
 	for _, cmd := range commands {
-		err := dg.ApplicationCommandDelete(dg.State.User.ID, "", cmd.ID)
+		err := dg.ApplicationCommandDelete(dg.State.User.ID, GUILD_ID, cmd.ID)
 		if err != nil {
 			log.Fatal().
 				Err(err).
@@ -255,6 +263,10 @@ var (
 				},
 			},
 		},
+		{
+			Name:        "help",
+			Description: "Shows the help message.",
+		},
 	}
 
 	// CommandsHandlers map of all available commands and their corresponding handlers.
@@ -306,7 +318,7 @@ var (
 					Msg("No language found from message.")
 
 				_, err := s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
-					Content: "No language provided. Did you remember to put a valid language after the opening backticks? (```py)",
+					Content: "No language provided. Did you remember to put a valid language after the opening backticks? (e.g. ```py)",
 				})
 
 				if err != nil {
@@ -446,7 +458,7 @@ var (
 					Msg("No language found from message.")
 
 				_, err := s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
-					Content: "No language provided. Did you remember to put a valid language after the opening backticks? (```py)",
+					Content: "No language provided. Did you remember to put a valid language after the opening backticks? (e.g. ```py)",
 				})
 
 				if err != nil {
@@ -490,6 +502,35 @@ var (
 						Err(err).
 						Msg("Error sending followup message.")
 				}
+			}
+		},
+		"help": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			err := s.InteractionRespond(
+				i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: strings.Join([]string{
+							"**`/run [language]`**",
+							"Looks for a code message in the last 10 messages in the channel and executes it.",
+							"If the language is not specified, it will try to detect the language from the language specified after the backticks (e.g. \\`\\`\\`py).",
+							"",
+							"Run Code",
+							"Right click on any message to run it, if that message is a code message.",
+							"",
+							"Supported languages",
+							"```",
+							strings.Join(languages, " "),
+							"```",
+						}, "\n"),
+					},
+				},
+			)
+
+			if err != nil {
+				log.Error().
+					Err(err).
+					Msg("Error responding to interaction.")
+				return
 			}
 		},
 	}
