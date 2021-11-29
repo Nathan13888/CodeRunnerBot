@@ -54,6 +54,24 @@ func main() {
 	dg.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if h, ok := commandsHandlers[i.ApplicationCommandData().Name]; ok {
 			h(s, i)
+
+			log.Debug().
+				Str("message_id",
+					i.ApplicationCommandData().
+						Resolved.
+						Messages[i.ApplicationCommandData().TargetID].
+						ID).
+				Str("user_id",
+					i.ApplicationCommandData().
+						Resolved.
+						Messages[i.ApplicationCommandData().TargetID].
+						Author.ID).
+				Str("channel_id",
+					i.ApplicationCommandData().
+						Resolved.
+						Messages[i.ApplicationCommandData().TargetID].
+						ChannelID).
+				Msg(fmt.Sprintf("Command recieved: \"%s\"", i.ApplicationCommandData().Name))
 		}
 	})
 
@@ -170,24 +188,6 @@ var (
 	// CommandsHandlers map of all available commands and their corresponding handlers.
 	commandsHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		"Run Code": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			log.Debug().
-				Str("message_id",
-					i.ApplicationCommandData().
-						Resolved.
-						Messages[i.ApplicationCommandData().TargetID].
-						ID).
-				Str("user_id",
-					i.ApplicationCommandData().
-						Resolved.
-						Messages[i.ApplicationCommandData().TargetID].
-						Author.ID).
-				Str("channel_id",
-					i.ApplicationCommandData().
-						Resolved.
-						Messages[i.ApplicationCommandData().TargetID].
-						ChannelID).
-				Msg("Command recieved: \"Run Code\"")
-
 			// Send deferred message, telling the user that a response is coming shortly.
 			err := s.InteractionRespond(
 				i.Interaction, &discordgo.InteractionResponse{
