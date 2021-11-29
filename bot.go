@@ -277,7 +277,7 @@ var (
 			}
 
 			// Get output of executed code.
-			output, err := Exec(lang, "latest", code)
+			output, err := Exec(lang, "", code)
 
 			if err != nil {
 				log.Error().
