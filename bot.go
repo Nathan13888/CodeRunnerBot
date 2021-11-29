@@ -60,6 +60,8 @@ func init() {
 	log.Debug().Msg("Using token: " + Token[:10])
 	log.Debug().
 		Strs("allowed_languages", allowedLanguages).
+		Str("dotenv", DOTENV).
+		Str("piston_url", PISTON_URL).
 		Str("cmd_prefix", CMD_PREFIX).
 		Int("msg_char_lim", MSG_CHAR_LIM).
 		Dur("max_exectime", MAX_EXECTIME).
