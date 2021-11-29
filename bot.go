@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/rs/zerolog/pkgerrors"
@@ -21,10 +22,12 @@ var (
 	BuildTime    string = "unknown"
 	GOOS         string = runtime.GOOS
 	ARCH         string = runtime.GOARCH
+	PISTON_URL   string
 )
 
 func init() {
-	// Initialize zerolog
+  
+  // Initialize zerolog
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	zerolog.TimeFieldFormat = time.RFC3339
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
@@ -32,8 +35,21 @@ func init() {
 	multi := zerolog.MultiLevelWriter(consoleWriter)
 	log.Logger = zerolog.New(multi).With().Timestamp().Logger()
 
-	// Stop the bot if the TOKEN environment variable is not set.
+	// Load environment from .env.
+  err := godotenv.Load(".env")
+	if err != nil {
+		panic("Error loading .env file")
+	}
 	Token = os.Getenv("TOKEN")
+	if Token == "" {
+		panic("empty token...")
+	} else if len(Token) < 10 {
+		panic("token seems too short...")
+	}
+	PISTON_URL = os.Getenv("PISTON_URL")
+	if len(PISTON_URL) == 0 {
+		PISTON_URL = "https://emkc.org/api/v2/piston/"
+	}
 	if Token == "" {
 		log.Fatal().
 			Msg("Token not found. Did you forget to set the TOKEN environment variable?")
