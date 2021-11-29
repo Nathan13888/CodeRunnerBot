@@ -1,16 +1,34 @@
 version: "3.3"
 
+networks:
+  crb:
+
 services:
-  dcs:
+  bot:
     image: ghcr.io/nathan13888/coderunnerbot/crb:latest
-    container_name: crb
+    container_name: crb_bot
     restart: always
     environment:
-      TOKEN_FILE: /run/secrets/token
-    secrets:
-      - TOKEN
+      - PISTON_URL=http://piston:2000/
+      - DOTENV=/app/.env
+    volumes:
+      - ./.env:/app/.env:ro
+    networks:
+      - crb
+    depends_on:
+      - piston
 
-secrets:
-  token:
-    file: ./TOKEN
+  piston:
+    image: ghcr.io/engineer-man/piston
+    container_name: piston_api
+    restart: always
+    ports:
+      - 2000:2000
+    volumes:
+      - ./data/piston:/piston
+    networks:
+      - crb
+    tmpfs:
+      - /piston/jobs:exec
+      - /tmp:exec
 
