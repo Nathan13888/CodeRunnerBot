@@ -23,6 +23,7 @@ var (
 	BuildTime    string = "unknown"
 	GOOS         string = runtime.GOOS
 	ARCH         string = runtime.GOARCH
+	PISTON_URL   string
 )
 
 func init() {
@@ -31,6 +32,10 @@ func init() {
 		panic("empty token...")
 	} else if len(Token) < 10 {
 		panic("token seems too short...")
+	}
+	PISTON_URL = os.Getenv("PISTON_URL")
+	if len(PISTON_URL) == 0 {
+		PISTON_URL = "https://emkc.org/api/v2/piston/"
 	}
 
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)

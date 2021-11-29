@@ -1,12 +1,18 @@
 package main
 
 import (
+	"net/http"
+
 	piston "github.com/milindmadhukar/go-piston"
 	"github.com/rs/zerolog/log"
 )
 
 func Exec(lang string, version string, code string) (string, error) {
-	client := piston.CreateDefaultClient()
+	httpClient := http.DefaultClient
+	client := piston.New("",
+		httpClient,
+		PISTON_URL,
+	)
 	output, err := client.Execute(lang, version,
 		[]piston.Code{
 			{
