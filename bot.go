@@ -404,7 +404,7 @@ var (
 			}
 
 			// Check if any of those messages is a code message.
-			var message *discordgo.Message
+			message := &discordgo.Message{}
 
 			for _, m := range messages {
 				if isCodeMessage(m) {
@@ -413,7 +413,7 @@ var (
 				}
 			}
 
-			if (message == &discordgo.Message{}) {
+			if message.Content == "" {
 				_, err := s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
 					Content: "No code messages found in the last 10 messages. Did you remember to wrap your code in backticks (```)?",
 				})
@@ -423,7 +423,6 @@ var (
 						Err(err).
 						Msg("Error sending followup message.")
 				}
-
 				return
 			}
 
@@ -450,13 +449,13 @@ var (
 
 					return
 				}
-			}
-
-			if lang != "" {
+			} else {
 				log.Debug().
 					Str("language", lang).
 					Msg("Language found from message.")
-			} else {
+			}
+
+			if lang == "" {
 				log.Debug().
 					Msg("No language found from message.")
 
@@ -614,7 +613,7 @@ func getLanguageAndCodeFromMessage(m *discordgo.Message) (string, string) {
 		}
 	}
 
-	return "", ""
+	return "", strings.Join(c[1:len(c)-1], "\n")
 }
 
 func splitOutput(output string, limit int) []string {
