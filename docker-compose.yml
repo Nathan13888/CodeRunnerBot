@@ -9,7 +9,7 @@ services:
     container_name: crb_bot
     restart: always
     environment:
-      - PISTON_URL=http://piston:2000/
+      - PISTON_URL=http://piston:2000/api/v2/
       - DOTENV=/app/.env
     volumes:
       - ./.env:/app/.env:ro
