@@ -21,6 +21,16 @@ build:
 docker-build:
 	docker build -t crb .
 
+build-piston:
+	docker build -t crb-piston piston/api
+	docker build -t crb-piston-repo piston/repo
+
+publish-piston:
+	docker tag crb-piston:latest ghcr.io/nathan13888/coderunnerbot/piston:latest
+	docker tag crb-piston-repo:latest ghcr.io/nathan13888/coderunnerbot/piston-repo:latest
+	docker push ghcr.io/nathan13888/coderunnerbot/piston:latest
+	docker push ghcr.io/nathan13888/coderunnerbot/piston-repo:latest
+
 publish:
 	make publish-ghcr
 
