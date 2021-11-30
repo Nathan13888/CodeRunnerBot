@@ -7,6 +7,9 @@ run-build:
 	make build
 	./bin/crb
 
+run-docker:
+	docker run -v $$(pwd)/.env:/app/.env:ro -it --rm ghcr.io/nathan13888/coderunnerbot/crb:latest
+
 build:
 	go build -o bin/crb -ldflags "\
 		-X 'main.BuildVersion=$$(git rev-parse --abbrev-ref HEAD)' \
