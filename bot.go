@@ -71,15 +71,8 @@ func init() {
 			Msg("GUILD_ID not found in .env file, registering commands globally.")
 	}
 
-	// Log the languages and environment.
-	i := 0
-	for l := range languageMappings {
-		languages[i] = l
-		i++
-	}
-
 	log.Debug().
-		Strs("languages", languages).
+		Strs("languages", *languages).
 		Str("env_file", DOTENV).
 		Str("token", TOKEN[:10]+strings.Repeat("*", len(TOKEN)-10)).
 		Str("piston_url", PISTON_URL).
@@ -160,7 +153,7 @@ func main() {
 	dg.Close()
 }
 
-var languages = make([]string, len(languageMappings))
+var languages = GetLanguages()
 
 // Array of all available languages as well as their markdown codes.
 var languageMappings = map[string][]string{
@@ -436,7 +429,7 @@ var (
 					Str("language", lang).
 					Msg("Language found from options.")
 
-				if !stringInSlice(lang, languages) {
+				if !stringInSlice(lang, *languages) {
 					_, err := s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
 						Content: fmt.Sprintf("Language %v is not supported. Supported languages are: %v", lang, languages),
 					})
@@ -528,7 +521,7 @@ var (
 									},
 									{
 										Name:  "Supported Languages",
-										Value: strings.Join(languages, ", "),
+										Value: strings.Join(*languages, ", "),
 									},
 								},
 							},
