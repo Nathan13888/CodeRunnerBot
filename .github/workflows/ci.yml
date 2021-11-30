@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  
+  workflow_dispatch:
+
+# Single build job with nix
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: cachix/install-nix-action@v16
+      
+      # Check and build
+      - run: nix flake check
+      - run: nix build
