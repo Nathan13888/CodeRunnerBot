@@ -17,14 +17,16 @@ import (
 )
 
 var (
-	TOKEN        string
-	PISTON_URL   string
-	DOTENV       string
-	GUILD_ID     string
-	BuildVersion string = "unknown"
-	BuildTime    string = "unknown"
-	GOOS         string = runtime.GOOS
-	ARCH         string = runtime.GOARCH
+	TOKEN            string
+	PISTON_URL       string
+	DOTENV           string
+	GUILD_ID         string
+	BuildVersion     string = "unknown"
+	BuildTime        string = "unknown"
+	GOOS             string = runtime.GOOS
+	ARCH             string = runtime.GOARCH
+	languages        []string
+	languageMappings map[string][]string
 )
 
 func init() {
@@ -71,8 +73,18 @@ func init() {
 			Msg("GUILD_ID not found in .env file, registering commands globally.")
 	}
 
+	// Load languages.
+	runtimes := *GetRuntimes()
+	languages = make([]string, len(runtimes))
+	languageMappings = make(map[string][]string, len(runtimes))
+
+	for i, r := range runtimes {
+		languages[i] = r.Language
+		languageMappings[r.Language] = r.Aliases
+	}
+
 	log.Debug().
-		Strs("languages", *languages).
+		Strs("languages", languages).
 		Str("env_file", DOTENV).
 		Str("token", TOKEN[:10]+strings.Repeat("*", len(TOKEN)-10)).
 		Str("piston_url", PISTON_URL).
@@ -151,89 +163,6 @@ func main() {
 
 	// Cleanly close the Discord session.
 	dg.Close()
-}
-
-var languages = GetLanguages()
-
-// Array of all available languages as well as their markdown codes.
-var languageMappings = map[string][]string{
-	"awk":          {"awk"},
-	"bash":         {"bash", "sh", "zsh", "ksh", "shell"},
-	"befunge93":    {"befunge"},
-	"brainfuck":    {"brainfuck", "bf"},
-	"c":            {"c"},
-	"c++":          {"cpp", "c++", "h"},
-	"cjam":         {},
-	"clojure":      {"clojure", "clj", "clojurescript", "cljs"},
-	"cobol":        {"cobol"},
-	"coffeescript": {"coffeescript", "coffee-script", "coffee"},
-	"cow":          {},
-	"crystal":      {"cr", "crystal"},
-	"csharp":       {"csharp", "c#", "cs", "aspx-cs"},
-	"csharp.net":   {},
-	"d":            {"d"},
-	"dart":         {"dart"},
-	"dash":         {},
-	"dragon":       {},
-	"elixir":       {"elixir", "ex", "exs"},
-	"emacs":        {"emacs-lisp", "elisp", "emacs"},
-	"erlang":       {"erlang"},
-	"file":         {},
-	"forte":        {},
-	"fortran":      {"fortran"},
-	"freebasic":    {"basic"},
-	"fsharp.net":   {},
-	"fsi":          {"fsharp", "f#"},
-	"go":           {"go", "golang"},
-	"golfscript":   {},
-	"groovy":       {"groovy"},
-	"haskell":      {"haskell", "hs"},
-	"husk":         {},
-	"iverilog":     {"verilog", "v"},
-	"japt":         {},
-	"java":         {"java"},
-	"javascript":   {"javascript", "js"},
-	"jelly":        {},
-	"julia":        {"julia", "jl"},
-	"kotlin":       {"kotlin"},
-	"lisp":         {"common-lisp", "cl", "lisp"},
-	"llvm_ir":      {"llvm"},
-	"lolcode":      {},
-	"lua":          {"lua"},
-	"nasm":         {"nasm"},
-	"nasm64":       {},
-	"nim":          {"nimrod", "nim"},
-	"ocaml":        {"ocaml"},
-	"octave":       {"octave"},
-	"osabie":       {},
-	"paradoc":      {},
-	"pascal":       {"delphi", "pas", "pascal", "objectpascal"},
-	"perl":         {"perl", "pl"},
-	"php":          {"php", "php3", "php4", "php5"},
-	"ponylang":     {"pony"},
-	"powershell":   {"powershell", "pwsh", "posh", "ps1", "psm1"},
-	"prolog":       {"prolog"},
-	"pure":         {},
-	"pyth":         {},
-	"python":       {"python", "py", "sage", "python3", "py3"},
-	"python2":      {"python2", "py2"},
-	"racket":       {"racket", "rkt"},
-	"raku":         {"perl6", "pl6", "raku"},
-	"retina":       {},
-	"rockstar":     {},
-	"rscript":      {"rd"},
-	"ruby":         {"ruby", "rb", "duby"},
-	"rust":         {"rust", "rs"},
-	"scala":        {"scala"},
-	"sqlite3":      {"sql"},
-	"swift":        {"swift"},
-	"typescript":   {"typescript", "ts"},
-	"basic":        {"basic"},
-	"basic.net":    {},
-	"vlang":        {},
-	"vyxal":        {},
-	"yeethon":      {},
-	"zig":          {"zig"},
 }
 
 var (
@@ -429,7 +358,7 @@ var (
 					Str("language", lang).
 					Msg("Language found from options.")
 
-				if !stringInSlice(lang, *languages) {
+				if !stringInSlice(lang, languages) {
 					_, err := s.FollowupMessageCreate(s.State.User.ID, i.Interaction, false, &discordgo.WebhookParams{
 						Content: fmt.Sprintf("Language %v is not supported. Supported languages are: %v", lang, languages),
 					})
@@ -521,7 +450,7 @@ var (
 									},
 									{
 										Name:  "Supported Languages",
-										Value: strings.Join(*languages, ", "),
+										Value: strings.Join(languages, ", "),
 									},
 								},
 							},
