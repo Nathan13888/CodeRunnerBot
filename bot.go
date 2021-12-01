@@ -529,10 +529,15 @@ func getLanguageAndCodeFromMessage(m *discordgo.Message) (string, string) {
 
 	// Get language from first line.
 	for i, j := range languageMappings {
+		test := c[0][3:]
+		code := strings.Join(c[1:len(c)-1], "\n")
+		if strings.EqualFold(test, i) {
+			return i, code
+		}
 		for _, k := range j {
 			// Check if the language in the first line is a valid language.
-			if strings.EqualFold(k, c[0][3:]) {
-				return i, strings.Join(c[1:len(c)-1], "\n")
+			if strings.EqualFold(k, test) {
+				return i, code
 			}
 		}
 	}
