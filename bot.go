@@ -89,6 +89,8 @@ func init() {
 		Str("token", TOKEN[:10]+strings.Repeat("*", len(TOKEN)-10)).
 		Str("piston_url", PISTON_URL).
 		Str("guild_id", GUILD_ID).
+		Str("build_version", BuildVersion).
+		Str("build_time", BuildTime).
 		Msg("Configured settings.")
 }
 
