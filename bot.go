@@ -102,7 +102,7 @@ func main() {
 	}
 
 	// Add a handler for the bot's status.
-	dg.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
+	dg.AddHandler(func(s *discordgo.Session, _ *discordgo.Ready) {
 		s.UpdateListeningStatus("/run")
 	})
 
