@@ -26,19 +26,21 @@ services:
       - 2000:2000
     volumes:
       - ./data/piston:/piston
-    environment:
-        - PISTON_REPO_URL=http://repo:8000/index
+    #environment:
+    #    - PISTON_REPO_URL=http://repo:8000/index
     networks:
       - crb
     tmpfs:
       - /piston/jobs:exec
       - /tmp:exec
 
-  piston-repo:
-    image: ghcr.io/nathan13888/coderunnerbot/piston-repo:latest
-    container_name: piston_repo
-    restart: always
-    command: ['--no-build']
-    volumes:
-      - ./piston:/piston
+#  piston-repo:
+#    image: ghcr.io/nathan13888/coderunnerbot/piston-repo:latest
+#    container_name: piston_repo
+#    restart: always
+#    command: ['--no-build']
+#    volumes:
+#      - ./piston:/piston
+#    networks:
+#      - crb
 
