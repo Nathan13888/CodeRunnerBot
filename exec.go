@@ -49,7 +49,6 @@ type File struct {
 }
 
 // TODO: runtime endpoints
-
 func Exec(lang string, version string, code string) (string, error) {
 	execRequest := ExecuteRequest{
 		Language: lang,
@@ -88,22 +87,27 @@ func Exec(lang string, version string, code string) (string, error) {
 	return results.Run.Output, err
 }
 
-// TODO: where did the error go...
-func GetRuntimes() *piston.Runtimes {
+func GetRuntimes() (*piston.Runtimes, error) {
 	httpClient := http.DefaultClient
 	client := piston.New("", httpClient, PISTON_URL)
+
 	runtimes, err := client.GetRuntimes()
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return runtimes
+
+	return runtimes, nil
 }
 
 // TODO: there should be a static list of runtimes which the bot refers to; any issues if the runtimes change??
 func GetLatestVersion(language string) (string, error) {
-	runtimes := GetRuntimes()
+	runtimes, err := GetRuntimes()
+	if err != nil {
+		return "", err
+	}
+
 	if runtimes == nil {
-		return "", errors.New("some unknown error from getting runtime...") // TODO: update this later...
+		return "", errors.New("no runtimes found")
 	}
 
 	for _, runtime := range *runtimes {

@@ -74,11 +74,16 @@ func init() {
 	}
 
 	// Load languages.
-	runtimes := *GetRuntimes()
-	languages = make([]string, len(runtimes))
-	languageMappings = make(map[string][]string, len(runtimes))
+	runtimes, err := GetRuntimes()
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("Error loading languages.")
+	}
+	languages = make([]string, len(*runtimes))
+	languageMappings = make(map[string][]string, len(*runtimes))
 
-	for i, r := range runtimes {
+	for i, r := range *runtimes {
 		languages[i] = r.Language
 		languageMappings[r.Language] = r.Aliases
 	}
@@ -104,9 +109,10 @@ func main() {
 	}
 
 	// Add a handler for the bot's status.
-	dg.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
+	dg.AddHandler(func(s *discordgo.Session, _ *discordgo.Ready) {
 		s.UpdateListeningStatus("/run")
-	})
+	},
+	)
 
 	// Add guild messages intent.
 	dg.Identify.Intents = discordgo.IntentsGuildMessages
