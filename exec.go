@@ -39,7 +39,7 @@ type ExecuteResults struct {
 	Stderr string `json:"stderr"`
 	Output string `json:"output"`
 	Code   int    `json:"code"`
-	Signal int    `json:"signal"` // what is this??
+	Signal string `json:"signal"` // what is this??
 }
 
 type File struct {
