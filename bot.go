@@ -101,7 +101,7 @@ func init() {
 
 func main() {
 	// Create a new Discord session using the provided bot token.
-	dg, err := discordgo.New("Bot " + TOKEN)
+	dg, err := discordgo.New(fmt.Sprintf("Bot %s", TOKEN))
 	if err != nil {
 		log.Fatal().
 			Err(err).
