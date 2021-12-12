@@ -81,7 +81,7 @@ func Exec(lang string, version string, code string) (string, error) {
 
 	var results ExecuteResponse
 	decoder := json.NewDecoder(res.Body)
-	decoder.DisallowUnknownFields()
+	// decoder.DisallowUnknownFields()
 	err = decoder.Decode(&results)
 
 	return results.Run.Output, err
