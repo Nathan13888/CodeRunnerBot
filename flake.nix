@@ -20,7 +20,7 @@
 
             src = ./.;
 
-            vendorSha256 = "sha256-SJK1c3Lf4hWoWTVLTTzMx1nudz7SZYT4uUluDuZ7K3E=";
+            vendorSha256 = "sha256-dWjuYBNFOextOqrHiJq57A0GflJ8Xcm/j2HQVArKPE0=";
           };
           defaultPackage = packages.code-runner-bot;
 
