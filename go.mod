@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/bwmarrin/discordgo v0.23.3-0.20211117035633-fd6228c0d536
-	github.com/joho/godotenv v1.4.0
+	github.com/joho/godotenv v1.5.1
 	github.com/milindmadhukar/go-piston v0.0.0-20211122120254-64da61081d05
 	github.com/rs/zerolog v1.28.0
 )
